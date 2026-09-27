@@ -39,24 +39,26 @@ components/
 
 ## Running the `sample_component` example
 
-From the repository root:
+From your cloned repository root:
 
 1. Go to the example project:
    ```bash
-   cd /home/runner/work/esp-components/esp-components/components/sample_component/examples/basic
+   cd components/sample_component/examples/basic
    ```
 2. Set the target (first time only):
    ```bash
-   idf.py set-target esp32
+   idf.py set-target <your_target>
    ```
 3. Build and flash to your connected board:
    ```bash
-   idf.py -p /dev/ttyUSB0 flash
+   idf.py -p <your_serial_port> flash
    ```
 4. Open the serial monitor:
    ```bash
-   idf.py -p /dev/ttyUSB0 monitor
+   idf.py -p <your_serial_port> monitor
    ```
+
+Replace placeholders with values for your setup (for example, target: `esp32`/`esp32s3`, serial port: `/dev/ttyUSB0` or `COM3`).
 
 Expected monitor output includes:
 
