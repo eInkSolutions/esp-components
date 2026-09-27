@@ -1,0 +1,5 @@
+version: "0.1.0"
+description: "Sample ESP-IDF component skeleton"
+url: "https://github.com/eInkSolutions/esp-components"
+maintainers:
+  - "eInkSolutions"
