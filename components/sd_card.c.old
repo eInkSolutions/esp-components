@@ -1,0 +1,108 @@
+#include "../include/sd_card.h"
+#include <memory>
+
+namespace sdcard {
+
+// ########################################
+// SdMmcBackend
+// ########################################
+
+class SdMmcBackend {
+public:
+  explicit SdMmcBackend(const Config &cfg) : cfg_(cfg) {}
+
+  bool begin() {
+    // ESP-IDF SDMMC init
+    return true;
+  }
+
+  void end() {
+    // ESP-IDF SDMMC cleanup
+  }
+
+private:
+  Config cfg_;
+};
+
+struct SdCard::Impl {
+  Config cfg;
+  bool mounted = false;
+
+  std::unique_ptr<SdMmcBackend> sdmmc;
+
+  explicit Impl(const Config &cfg) : cfg(cfg) {}
+
+  ~Impl() = default;
+
+  bool begin() {
+    switch (cfg.interface) {
+    case sdcard::Interface::SDMMC:
+      return beginSdmmc();
+    case Interface::SDSPI:
+      return beginSdspi();
+    case Interface::Auto:
+      return beginAuto();
+    }
+    return false;
+  }
+
+  void end() {
+    if (sdmmc) {
+      sdmmc->end();
+      sdmmc.reset();
+    }
+
+    // if (sdspi) {
+    //   sdspi->end();
+    //   sdspi.reset();
+    // }
+
+    mounted = false;
+  }
+
+private:
+  bool beginSdmmc() {
+    sdmmc = std::make_unique<SdMmcBackend>(cfg);
+
+    if (!sdmmc->begin()) {
+      sdmmc.reset();
+      return false;
+    }
+
+    mounted = true;
+    return true;
+  }
+
+  bool beginSdspi() {
+    return false;
+    // sdspi = std::make_unique<SdSpiBackend>(config);
+    //
+    // if (!sdspi->begin()) {
+    //   sdspi.reset();
+    //   return false;
+    // }
+    //
+    // mounted = true;
+    // return true;
+  }
+
+  bool beginAuto() {
+    // Your policy for Auto goes here.
+    //
+    // For example:
+    // 1. Try SDMMC
+    // 2. If that fails, try SDSPI
+
+    if (beginSdmmc()) {
+      return true;
+    }
+
+    return beginSdspi();
+  }
+};
+
+SdCard::SdCard(const Config &cfg) : impl_(new Impl{cfg}) {}
+
+bool SdCard::mounted() const { return impl_ != nullptr && impl_->mounted; }
+
+} // namespace sdcard

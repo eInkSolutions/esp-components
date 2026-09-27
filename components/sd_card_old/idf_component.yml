@@ -1,5 +1,5 @@
 version: "0.1.0"
-description: "Sample ESP-IDF component skeleton"
+description: "sd-card component for easy usage"
 url: "https://github.com/eInkSolutions/esp-components"
 maintainers:
   - "eInkSolutions"
