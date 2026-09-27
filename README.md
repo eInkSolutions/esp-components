@@ -36,3 +36,30 @@ components/
    - `main/main.c`
    - optional `sdkconfig.defaults`
 6. Validate the example builds in ESP-IDF before opening a PR.
+
+## Running the `sample_component` example
+
+From the repository root:
+
+1. Go to the example project:
+   ```bash
+   cd /home/runner/work/esp-components/esp-components/components/sample_component/examples/basic
+   ```
+2. Set the target (first time only):
+   ```bash
+   idf.py set-target esp32
+   ```
+3. Build and flash to your connected board:
+   ```bash
+   idf.py -p /dev/ttyUSB0 flash
+   ```
+4. Open the serial monitor:
+   ```bash
+   idf.py -p /dev/ttyUSB0 monitor
+   ```
+
+Expected monitor output includes:
+
+```text
+I (..) sample_component: sample_component initialized
+```
