@@ -1,0 +1,76 @@
+menu "SD Card Configuration"
+
+    choice SDCARD_INTERFACE
+        prompt "SD card interface"
+        default SDCARD_INTERFACE_SDMMC_1BIT
+
+        help
+            Select the interface used to communicate with the SD card.
+
+        config SDCARD_INTERFACE_SDMMC_1BIT
+            bool "SDMMC 1-bit"
+
+        config SDCARD_INTERFACE_SDMMC_4BIT
+            bool "SDMMC 4-bit"
+
+        config SDCARD_INTERFACE_SDSPI
+            bool "SDSPI"
+
+    endchoice
+
+
+    menu "SDMMC Configuration"
+        depends on SDCARD_INTERFACE_SDMMC_1BIT || SDCARD_INTERFACE_SDMMC_4BIT
+
+        config SDCARD_SDMMC_CLK_GPIO
+            int "CLK GPIO"
+            default 14
+
+        config SDCARD_SDMMC_CMD_GPIO
+            int "CMD GPIO"
+            default 15
+
+        config SDCARD_SDMMC_D0_GPIO
+            int "D0 GPIO"
+            default 2
+
+        config SDCARD_SDMMC_D1_GPIO
+            int "D1 GPIO"
+            default 4
+            depends on SDCARD_INTERFACE_SDMMC_4BIT
+
+        config SDCARD_SDMMC_D2_GPIO
+            int "D2 GPIO"
+            default 12
+            depends on SDCARD_INTERFACE_SDMMC_4BIT
+
+        config SDCARD_SDMMC_D3_GPIO
+            int "D3 GPIO"
+            default 13
+            depends on SDCARD_INTERFACE_SDMMC_4BIT
+
+    endmenu
+
+
+    menu "SDSPI Configuration"
+        depends on SDCARD_INTERFACE_SDSPI
+
+        config SDCARD_SDSPI_MOSI_GPIO
+            int "MOSI GPIO"
+            default 15
+
+        config SDCARD_SDSPI_MISO_GPIO
+            int "MISO GPIO"
+            default 2
+
+        config SDCARD_SDSPI_CLK_GPIO
+            int "CLK GPIO"
+            default 14
+
+        config SDCARD_SDSPI_CS_GPIO
+            int "CS GPIO"
+            default 13
+
+    endmenu
+
+endmenu
