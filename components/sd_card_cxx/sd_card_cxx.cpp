@@ -1,8 +1,11 @@
 #include "include/sd_card_cxx.hpp"
 #include "sd_card_impl.hpp"
 #include "sdkconfig.h"
-#include "sdmmc_backend.hpp"
 #include <stdio.h>
+
+#if CONFIG_SDCARD_INTERFACE_SDMMC_1BIT || CONFIG_SDCARD_INTERFACE_SDMMC_4BIT
+#include "sdmmc_backend.hpp"
+#endif
 
 namespace sdcard {
 #if CONFIG_SDCARD_INTERFACE_SDMMC_1BIT || CONFIG_SDCARD_INTERFACE_SDMMC_4BIT
