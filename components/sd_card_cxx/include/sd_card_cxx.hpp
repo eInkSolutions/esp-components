@@ -1,7 +1,6 @@
 #pragma once
 
 #include <cstddef>
-#include <cstdint>
 
 namespace sdcard {
 enum class Interface { Auto, SDMMC, SDSPI };
