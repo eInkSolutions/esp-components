@@ -52,6 +52,12 @@ Makefile
 install_manifest.txt
 compile_commands.json
 
+# esp clangd
+warnings.txt
+dependencies.lock
+sdkconfig
+sdkconfig.old
+
 # Temporary files
 *.tmp
 *.log
