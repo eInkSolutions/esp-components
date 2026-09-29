@@ -4,6 +4,7 @@
 #include "esp_log.h"
 #include "esp_vfs_fat.h"
 #include "sd_protocol_types.h"
+// #include "soc/soc_caps.h"
 
 namespace sdcard::internal {
 
@@ -39,6 +40,7 @@ bool SdMmcBackend::begin() {
 
   // Set bus width to use:
 #ifdef CONFIG_SDCARD_INTERFACE_SDMMC_4BIT
+  ESP_LOGI(TAG, "4Bit Mode selection");
   slot_config.width = 4;
 #else
   slot_config.width = 1;
@@ -48,6 +50,9 @@ bool SdMmcBackend::begin() {
 
   ESP_LOGI(TAG, "Mounting filesystem");
 
+  // TODO: This should be replaced with the lower level function - just
+  // convinient function, but hides the actual state and error of the
+  // initialization.
   ret = esp_vfs_fat_sdmmc_mount(cfg_.mount_point, &host, &slot_config,
                                 &mount_config, &card);
 
@@ -114,6 +119,9 @@ void SdMmcBackend::configureSdcardPins(sdmmc_slot_config_t &slot_config) {
   slot_config.d3 = static_cast<gpio_num_t>(CONFIG_SDCARD_SDMMC_D3_GPIO);
 
 #endif // CONFIG_SDCARD_INTERFACE_SDMMC_4BIT
+
+#else
+  ESP_LOGI(TAG, "Non GPIO-MATRIX. Using defaults.");
 
 #endif // SOC_SDMMC_USE_GPIO_MATRIX
 }
