@@ -18,39 +18,51 @@ menu "SD Card Configuration"
 
     endchoice
 
-
     menu "SDMMC Configuration"
         depends on SDCARD_INTERFACE_SDMMC_1BIT || SDCARD_INTERFACE_SDMMC_4BIT
 
+        config SDCARD_SDMMC_CUSTOM_PINS
+            bool "Use custom SDMMC GPIO pins"
+            default false
+            help
+                Use manually configured GPIO pins for the SDMMC interface.
+                If disabled, the default SDMMC pin configuration is used.
+
         config SDCARD_SDMMC_CLK_GPIO
             int "CLK GPIO"
+            depends on SDCARD_SDMMC_CUSTOM_PINS
             default 14
 
         config SDCARD_SDMMC_CMD_GPIO
             int "CMD GPIO"
+            depends on SDCARD_SDMMC_CUSTOM_PINS
             default 15
 
         config SDCARD_SDMMC_D0_GPIO
             int "D0 GPIO"
+            depends on SDCARD_SDMMC_CUSTOM_PINS
             default 2
 
         config SDCARD_SDMMC_D1_GPIO
             int "D1 GPIO"
+            depends on SDCARD_SDMMC_CUSTOM_PINS && SDCARD_INTERFACE_SDMMC_4BIT
             default 4
-            depends on SDCARD_INTERFACE_SDMMC_4BIT
 
         config SDCARD_SDMMC_D2_GPIO
             int "D2 GPIO"
+            depends on SDCARD_SDMMC_CUSTOM_PINS && SDCARD_INTERFACE_SDMMC_4BIT
             default 12
-            depends on SDCARD_INTERFACE_SDMMC_4BIT
 
         config SDCARD_SDMMC_D3_GPIO
             int "D3 GPIO"
+            depends on SDCARD_SDMMC_CUSTOM_PINS && SDCARD_INTERFACE_SDMMC_4BIT
             default 13
-            depends on SDCARD_INTERFACE_SDMMC_4BIT
+
+        config SDMMC_DEBUG_PIN_CONNECTIONS
+            bool "Debug Pin Connections"
+            default false
 
     endmenu
-
 
     menu "SDSPI Configuration"
         depends on SDCARD_INTERFACE_SDSPI
@@ -74,3 +86,4 @@ menu "SD Card Configuration"
     endmenu
 
 endmenu
+
