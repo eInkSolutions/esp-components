@@ -35,7 +35,8 @@ bool SdMmcBackend::begin() {
 
   // mount options
   esp_vfs_fat_sdmmc_mount_config_t mount_config = {
-      .format_if_mount_failed = false, // TODO: allow Kconfig here?
+      .format_if_mount_failed =
+          cfg_.format_if_mount_failed, // TODO: allow Kconfig here?
       .max_files = static_cast<int>(cfg_.max_files),
       .allocation_unit_size = cfg_.allocation_unit_size,
       .disk_status_check_enable = true,
