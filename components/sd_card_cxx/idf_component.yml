@@ -1,6 +1,6 @@
 version: "0.1.0"
 description: "SD Card abstraction for SDSPI and SDMMC in C++"
-url: "https://github.com/yourname/esp-components" #TODO: change this
+url: https://github.com/eInkSolutions/esp-components
 license: "MIT"
 ## IDF Component Manager Manifest File
 dependencies:
