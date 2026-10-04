@@ -1,0 +1,15 @@
+menu "7.3-inch E-Paper Configuration"
+
+config EPD_BUSY_INTERRUPT_ENABLED
+    bool "Enable BUSY GPIO interrupt"
+    default y
+    help
+        Enable the BUSY GPIO interrupt for the 7.3-inch
+        e-paper display.
+
+        When enabled, the driver uses a GPIO interrupt to
+        detect the BUSY -> IDLE transition of the display.
+
+        When disabled, the driver will use polling instead.
+
+endmenu
