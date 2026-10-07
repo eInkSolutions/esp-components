@@ -2,7 +2,7 @@ menu "7.3-inch E-Paper Configuration"
 
 config EPD_BUSY_INTERRUPT_ENABLED
     bool "Enable BUSY GPIO interrupt"
-    default y
+    default n
     help
         Enable the BUSY GPIO interrupt for the 7.3-inch
         e-paper display.
