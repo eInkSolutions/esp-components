@@ -117,17 +117,47 @@ public:
 
   constexpr uint16_t bytesPerRow() const { return (width_ + 1) / 2; }
 
-  uint8_t &byte(uint16_t x, uint16_t y) { return data_[index(x, y)]; }
-
-  const uint8_t &byte(uint16_t x, uint16_t y) const {
-    return data_[index(x, y)];
-  }
-
-  constexpr size_t index(uint16_t x, uint16_t y) const {
-    return y * bytesPerRow() + x;
+  constexpr size_t size() const {
+    return static_cast<size_t>(bytesPerRow()) * height_;
   }
 
   constexpr uint16_t byteX(uint16_t pixelX) const { return pixelX / 2; }
+
+  constexpr size_t index(uint16_t pixelX, uint16_t y) const {
+    return static_cast<size_t>(y) * bytesPerRow() + byteX(pixelX);
+  }
+
+  uint8_t &byte(uint16_t pixelX, uint16_t y) { return data_[index(pixelX, y)]; }
+
+  const uint8_t &byte(uint16_t pixelX, uint16_t y) const {
+    return data_[index(pixelX, y)];
+  }
+
+  uint8_t getPixel(uint16_t x, uint16_t y) const {
+    const uint8_t value = byte(x, y);
+
+    if ((x & 1) == 0) {
+      return value >> 4;
+    }
+
+    return value & 0x0F;
+  }
+
+  void setPixel(uint16_t x, uint16_t y, uint8_t color) {
+    uint8_t &value = byte(x, y);
+
+    color &= 0x0F;
+
+    if ((x & 1) == 0) {
+      value = (value & 0x0F) | (color << 4);
+    } else {
+      value = (value & 0xF0) | color;
+    }
+  }
+
+  uint8_t *data() { return data_; }
+
+  const uint8_t *data() const { return data_; }
 
 private:
   uint8_t *data_;

@@ -4,6 +4,7 @@
 #include "EpdFramebuffer.hpp"
 #include "esp_lcd_panel_interface.h"
 #include "esp_lcd_panel_io.h"
+#include "esp_lcd_types.h"
 #include "freertos/FreeRTOS.h"
 #include "freertos/semphr.h"
 
@@ -18,8 +19,7 @@ public:
   esp_err_t reset();
   esp_err_t init();
 
-  esp_err_t drawBitmap(int xStart, int yStart, int xEnd, int yEnd,
-                       const void *data);
+  esp_err_t drawImage(const Epd::Framebuffer &framebuffer);
 
   esp_err_t refresh();
   esp_err_t waitIdle();
@@ -48,6 +48,12 @@ private:
 
   void sendCommand(const EpdCommands::Command &command);
   void sendData(const uint8_t *data, size_t size);
+
+  esp_err_t sendDrawCommand(esp_lcd_panel_io_handle_t io,
+                            const Framebuffer &framebuffer);
+  esp_err_t sendRefreshCommand(esp_lcd_panel_io_handle_t io);
+  esp_err_t sendPowerOnCommand(esp_lcd_panel_io_handle_t io);
+  esp_err_t sendPowerOffCommand(esp_lcd_panel_io_handle_t io);
 
 #ifdef CONFIG_EPD_BUSY_INTERRUPT_ENABLED
   static void busyIsrHandler(void *arg);
