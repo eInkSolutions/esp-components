@@ -21,12 +21,19 @@ public:
 
   esp_err_t drawImage(const Epd::Framebuffer &framebuffer);
 
-  esp_err_t refresh();
+  esp_err_t refresh(const esp_lcd_panel_io_handle_t &io);
   esp_err_t waitIdle();
 
   esp_err_t waitForRefreshComplete();
 
+  using BusyCompleteCallback = void (*)(void *user_ctx);
+
+  esp_err_t registerBusyCompleteCallback(BusyCompleteCallback callback,
+                                         void *user_ctx);
+
 private:
+  TickType_t timeout_ = pdMS_TO_TICKS(30000);
+
   esp_lcd_panel_t panel_;
   esp_lcd_panel_io_handle_t io_;
 
@@ -45,6 +52,9 @@ private:
   bool invertColor_;
 
   Framebuffer framebuffer_;
+
+  BusyCompleteCallback busyCompleteCallback_ = nullptr;
+  void *busyCompleteUserCtx_ = nullptr;
 
   void sendCommand(const EpdCommands::Command &command);
   void sendData(const uint8_t *data, size_t size);

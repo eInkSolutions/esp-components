@@ -14,6 +14,12 @@ namespace Epd {
 esp_err_t Panel7in3::init() {
 #ifdef CONFIG_EPD_BUSY_INTERRUPT_ENABLED
 
+  // make sure busy pin is not GPIO36 or GPIO39
+  if (busyGpio_ == GPIO_NUM_36 || busyGpio_ == GPIO_NUM_39) {
+    ESP_LOGE(TAG, "BUSY GPIO %d is not supported", busyGpio_);
+    return ESP_ERR_INVALID_ARG;
+  }
+
   ESP_RETURN_ON_ERROR(configureBusyInterrupt(), TAG,
                       "Failed to configure BUSY GPIO");
 
@@ -25,11 +31,14 @@ esp_err_t Panel7in3::init() {
     ESP_LOGE(TAG, "BUSY GPIO %d is not supported", busyGpio_);
     return ESP_ERR_INVALID_ARG;
   }
-  gpio_intr_enable(busyGpio_)
+
+  // Keep the interrupt disabled until a refresh starts.
+  ESP_RETURN_ON_ERROR(gpio_intr_disable(busyGpio_), TAG,
+                      "Failed to disable BUSY interrupt");
 
 #endif // CONFIG_EPD_BUSY_INTERRUPT_ENABLED
 
-      return ESP_OK;
+  return ESP_OK;
 }
 
 #ifdef CONFIG_EPD_BUSY_INTERRUPT_ENABLED
@@ -73,11 +82,29 @@ void Panel7in3::handleBusyInterrupt() {
 esp_err_t Panel7in3::waitForRefreshComplete() {
 #ifdef CONFIG_EPD_BUSY_INTERRUPT_ENABLED
 
-  if (xSemaphoreTake(refreshDoneSemaphore_, portMAX_DELAY) != pdTRUE) {
-    return ESP_FAIL;
+  // Discard stale notifications from previous waits.
+  while (xSemaphoreTake(refreshDoneSemaphore_, 0) == pdTRUE) {
   }
 
-  return ESP_OK;
+  // Enable the interrupt only while waiting for BUSY.
+  ESP_RETURN_ON_ERROR(gpio_intr_enable(busyGpio_), TAG,
+                      "Failed to enable BUSY interrupt");
+
+  // The display may already be idle.
+  if (gpio_get_level(busyGpio_) != 0) {
+    ESP_RETURN_ON_ERROR(gpio_intr_disable(busyGpio_), TAG,
+                        "Failed to disable BUSY interrupt");
+    return ESP_OK;
+  }
+
+  // Wait for the ISR to notify us that BUSY went HIGH.
+  if (xSemaphoreTake(refreshDoneSemaphore_, timeout_) != pdTRUE) {
+    gpio_intr_disable(busyGpio_);
+    return ESP_ERR_TIMEOUT;
+  }
+
+  ESP_RETURN_ON_ERROR(gpio_intr_disable(busyGpio_), TAG,
+                      "Failed to disable BUSY interrupt");
 
 #else
 
@@ -85,9 +112,22 @@ esp_err_t Panel7in3::waitForRefreshComplete() {
     vTaskDelay(pdMS_TO_TICKS(1));
   }
 
-  return ESP_OK;
-
 #endif
+
+  // Only call this after successful completion.
+  if (busyCompleteCallback_) {
+    busyCompleteCallback_(busyCompleteUserCtx_);
+  }
+
+  return ESP_OK;
+}
+
+esp_err_t Panel7in3::refresh(const esp_lcd_panel_io_handle_t &io) {
+  ESP_RETURN_ON_ERROR(sendRefreshCommand(io), TAG, "Failed to start refresh");
+
+  ESP_RETURN_ON_ERROR(waitForRefreshComplete(), TAG, "Refresh handling error");
+
+  return ESP_OK;
 }
 
 esp_err_t Panel7in3::drawImage(const Epd::Framebuffer &framebuffer) {
@@ -105,9 +145,8 @@ esp_err_t Panel7in3::drawImage(const Epd::Framebuffer &framebuffer) {
                       "data framebuffer transmition err");
 
   // Refresh screen here
-  ESP_RETURN_ON_ERROR(sendRefreshCommand(io), TAG,
+  ESP_RETURN_ON_ERROR(refresh(io), TAG,
                       "error sending refresh command to e-paper");
-  ESP_RETURN_ON_ERROR(waitForRefreshComplete(), TAG, "refresh handling error");
 
   // Turn off display to save consumption and not burn epaper display
   ESP_RETURN_ON_ERROR(sendPowerOffCommand(io), TAG,
@@ -158,4 +197,16 @@ esp_err_t Panel7in3::sendPowerOnCommand(esp_lcd_panel_io_handle_t io) {
   return ESP_OK;
 }
 
+esp_err_t Panel7in3::registerBusyCompleteCallback(BusyCompleteCallback callback,
+                                                  void *user_ctx) {
+  if (callback == nullptr) {
+    ESP_LOGE(TAG, "Refresh-done callback must not be null");
+    return ESP_ERR_INVALID_ARG;
+  }
+
+  busyCompleteCallback_ = callback;
+  busyCompleteUserCtx_ = user_ctx;
+
+  return ESP_OK;
+}
 } // namespace Epd
