@@ -4,9 +4,13 @@
 #include "driver/gpio.h"
 #include "esp_check.h"
 #include "esp_err.h"
+#include "esp_lcd_panel_interface.h"
 #include "esp_lcd_panel_io.h"
 #include "lwip/priv/nd6_priv.h"
+#include "soc/gpio_num.h"
 #include <cstddef>
+#include <new>
+#include <sys/cdefs.h>
 
 const static char *TAG = "EPD_DRIVER";
 
@@ -79,7 +83,7 @@ void Panel7in3::handleBusyInterrupt() {
 }
 #endif // CONFIG_EPD_BUSY_INTERRUPT_ENABLED
 
-esp_err_t Panel7in3::waitForRefreshComplete() {
+esp_err_t Panel7in3::waitUntilIdle() {
 #ifdef CONFIG_EPD_BUSY_INTERRUPT_ENABLED
 
   // Discard stale notifications from previous waits.
@@ -109,7 +113,7 @@ esp_err_t Panel7in3::waitForRefreshComplete() {
 #else
 
   while (gpio_get_level(busyGpio_) == 0) {
-    vTaskDelay(pdMS_TO_TICKS(1));
+    vTaskDelay(pdMS_TO_TICKS(15));
   }
 
 #endif
@@ -125,7 +129,7 @@ esp_err_t Panel7in3::waitForRefreshComplete() {
 esp_err_t Panel7in3::refresh(const esp_lcd_panel_io_handle_t &io) {
   ESP_RETURN_ON_ERROR(sendRefreshCommand(io), TAG, "Failed to start refresh");
 
-  ESP_RETURN_ON_ERROR(waitForRefreshComplete(), TAG, "Refresh handling error");
+  ESP_RETURN_ON_ERROR(waitUntilIdle(), TAG, "Refresh handling error");
 
   return ESP_OK;
 }
@@ -137,7 +141,7 @@ esp_err_t Panel7in3::drawImage(const Epd::Framebuffer &framebuffer) {
   // Make sure display is turned on
   ESP_RETURN_ON_ERROR(sendPowerOnCommand(io), TAG,
                       "error sending PowerOff command to epaper display.");
-  ESP_RETURN_ON_ERROR(waitForRefreshComplete(), TAG, "refresh handling error");
+  ESP_RETURN_ON_ERROR(waitUntilIdle(), TAG, "refresh handling error");
 
   // TODO: implement more
 
@@ -151,7 +155,7 @@ esp_err_t Panel7in3::drawImage(const Epd::Framebuffer &framebuffer) {
   // Turn off display to save consumption and not burn epaper display
   ESP_RETURN_ON_ERROR(sendPowerOffCommand(io), TAG,
                       "error sending PowerOff command to epaper display.");
-  ESP_RETURN_ON_ERROR(waitForRefreshComplete(), TAG, "refresh handling error");
+  ESP_RETURN_ON_ERROR(waitUntilIdle(), TAG, "refresh handling error");
   return ESP_OK;
 }
 
@@ -206,6 +210,71 @@ esp_err_t Panel7in3::registerBusyCompleteCallback(BusyCompleteCallback callback,
 
   busyCompleteCallback_ = callback;
   busyCompleteUserCtx_ = user_ctx;
+
+  return ESP_OK;
+}
+
+esp_err_t Panel7in3::panelReset(esp_lcd_panel_t *panel) {
+  auto *self = __containerof(panel, Panel7in3, panel_);
+  return self->reset();
+}
+
+esp_err_t Panel7in3::reset() {
+  if (resetGpio_ == GPIO_NUM_NC) {
+    return ESP_ERR_INVALID_STATE;
+  }
+
+  ESP_RETURN_ON_ERROR(gpio_set_level(resetGpio_, resetLevel_), TAG,
+                      "Failed to set reset GPIO");
+  vTaskDelay(pdMS_TO_TICKS(20));
+
+  ESP_RETURN_ON_ERROR(gpio_set_level(resetGpio_, !resetLevel_), TAG,
+                      "Failed to set reset GPIO");
+  vTaskDelay(pdMS_TO_TICKS(2));
+
+  ESP_RETURN_ON_ERROR(gpio_set_level(resetGpio_, resetLevel_), TAG,
+                      "Failed to set reset GPIO");
+  vTaskDelay(pdMS_TO_TICKS(20));
+
+  return waitUntilIdle();
+}
+
+esp_err_t Panel7in3::esp_lcd_new_panel_7in3e(
+    const esp_lcd_panel_dev_config_t *const panel_dev_config) {
+
+  ESP_RETURN_ON_FALSE(panel_dev_config, ESP_ERR_INVALID_ARG, TAG,
+                      "panel_dev_config is NULL");
+
+  auto *panel = new (std::nothrow) esp_lcd_panel_t{};
+
+  ESP_RETURN_ON_FALSE(panel, ESP_ERR_NO_MEM, TAG,
+                      "Failed to allocate panel context");
+
+  const auto *epaper_config = static_cast<const esp_lcd_panel7in3_config_t *>(
+      panel_dev_config->vendor_config);
+
+  ESP_RETURN_ON_FALSE(epaper_config, ESP_ERR_INVALID_ARG, TAG,
+                      "Missing e-paper configuration");
+
+  // panel int function and other fields
+
+  busyGpio_ = static_cast<gpio_num_t>(epaper_config->busy_gpio_num);
+  resetGpio_ = static_cast<gpio_num_t>(panel_dev_config->reset_gpio_num);
+  resetLevel_ = panel_dev_config->flags.reset_active_high;
+  busyLevel_ = false;
+
+  // Register the ESP-IDF interface callbacks.
+  panel_.del = panelDel;
+  panel_.reset = panelReset;
+  panel_.init = panelInit;
+  panel_.draw_bitmap = panelDrawBitmap;
+  panel_.invert_color = panelInvertColor;
+  panel_.set_gap = panelSetGap;
+  panel_.mirror = panelMirror;
+  panel_.swap_xy = panelSwapXY;
+  panel_.disp_on_off = panelDispOnOff;
+
+  panel_handle_ = &panel_;
 
   return ESP_OK;
 }

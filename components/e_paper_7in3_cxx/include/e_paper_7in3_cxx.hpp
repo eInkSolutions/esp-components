@@ -22,13 +22,9 @@ typedef struct {
 
 class Panel7in3 {
 public:
-  Panel7in3(esp_lcd_panel_io_handle_t io, int reset_gpio,
-            const esp_lcd_panel_dev_config_t *const panel_dev_config)
-      : io_(io) {
-    // resetgpio_ = reset_gpio;
-    const auto *epaper_config = static_cast<const esp_lcd_panel7in3_config_t *>(
-        panel_dev_config->vendor_config);
-    busyGpio_ = static_cast<gpio_num_t>(epaper_config->busy_gpio_num);
+  Panel7in3(esp_lcd_panel_io_handle_t io,
+            const esp_lcd_panel_dev_config_t *const panel_dev_config) {
+    esp_lcd_new_panel_7in3e(panel_dev_config);
   }
 
   ~Panel7in3();
@@ -36,7 +32,6 @@ public:
   Panel7in3(const Panel7in3 &) = delete;
   Panel7in3 &operator=(const Panel7in3 &) = delete;
 
-  esp_err_t reset();
   esp_err_t init();
 
   esp_err_t drawImage(const Epd::Framebuffer &framebuffer);
@@ -44,7 +39,7 @@ public:
   esp_err_t refresh(const esp_lcd_panel_io_handle_t &io);
   esp_err_t waitIdle();
 
-  esp_err_t waitForRefreshComplete();
+  esp_err_t waitUntilIdle();
 
   using BusyCompleteCallback = void (*)(void *user_ctx);
 
@@ -58,10 +53,9 @@ public:
 private:
   TickType_t timeout_ = pdMS_TO_TICKS(30000);
 
-  esp_lcd_panel_handle_t panel_handle = nullptr;
-
-  esp_lcd_panel_t panel_;
-  esp_lcd_panel_io_handle_t io_;
+  esp_lcd_panel_t panel_{};
+  esp_lcd_panel_handle_t panel_handle_ = nullptr;
+  esp_lcd_panel_io_handle_t io_ = nullptr;
 
   gpio_num_t resetGpio_ = GPIO_NUM_NC;
   gpio_num_t busyGpio_;
@@ -105,6 +99,9 @@ private:
   esp_err_t registerBusyInterrupt();
   SemaphoreHandle_t refreshDoneSemaphore_;
 #endif // CONFIG_EPD_BUSY_INTERRUPT_ENABLED
+
+  static esp_err_t panelReset(esp_lcd_panel_t *panel);
+  esp_err_t reset();
 };
 
 } // namespace Epd
