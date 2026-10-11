@@ -1,5 +1,6 @@
 #pragma once
 
+#include <array>
 #include <stddef.h>
 #include <stdint.h>
 
@@ -108,17 +109,19 @@ namespace Epd {
 /// dimensions; it does not contain a copy of the framebuffer.
 class Framebuffer {
 public:
-  constexpr Framebuffer(uint8_t *data, uint16_t width, uint16_t height)
-      : data_(data), width_(width), height_(height) {}
+  static constexpr uint16_t WIDTH = 800;
+  static constexpr uint16_t HEIGHT = 480;
+  static constexpr size_t BUFFER_SIZE = WIDTH * HEIGHT / 8;
 
-  constexpr uint16_t width() const { return width_; }
+  Framebuffer() = default;
 
-  constexpr uint16_t height() const { return height_; }
+  constexpr uint16_t width() const { return WIDTH; }
+  constexpr uint16_t height() const { return HEIGHT; }
 
-  constexpr uint16_t bytesPerRow() const { return (width_ + 1) / 2; }
+  constexpr uint16_t bytesPerRow() const { return (WIDTH + 1) / 2; }
 
   constexpr size_t size() const {
-    return static_cast<size_t>(bytesPerRow()) * height_;
+    return static_cast<size_t>(bytesPerRow()) * HEIGHT;
   }
 
   constexpr uint16_t byteX(uint16_t pixelX) const { return pixelX / 2; }
@@ -155,14 +158,11 @@ public:
     }
   }
 
-  uint8_t *data() { return data_; }
-
-  const uint8_t *data() const { return data_; }
+  uint8_t *data() { return data_.data(); }
+  const uint8_t *data() const { return data_.data(); }
 
 private:
-  uint8_t *data_;
-  uint16_t width_;
-  uint16_t height_;
+  std::array<uint8_t, BUFFER_SIZE> data_{};
 };
 
 } // namespace Epd
