@@ -6,9 +6,11 @@
 #include "esp_err.h"
 #include "esp_lcd_panel_interface.h"
 #include "esp_lcd_panel_io.h"
+#include "esp_lcd_panel_io_interface.h"
 #include "lwip/priv/nd6_priv.h"
 #include "soc/gpio_num.h"
 #include <cstddef>
+#include <cstdint>
 #include <new>
 #include <sys/cdefs.h>
 
@@ -237,6 +239,72 @@ esp_err_t Panel7in3::reset() {
   vTaskDelay(pdMS_TO_TICKS(20));
 
   return waitUntilIdle();
+}
+
+esp_err_t Panel7in3::panelInit(esp_lcd_panel_t *panel) {
+  auto *self = __containerof(panel, Panel7in3, panel_);
+  esp_lcd_panel_io_handle_t io = self->io_;
+
+  // Software Reset (SWRST)
+  self->reset();
+
+  // epaper register init INFO: hard to read
+  uint8_t customDataCmdOne[] = {0x49, 0x55, 0x20, 0x08, 0x09, 0x18};
+  self->sendCommand(
+      EpdCommands::create(0xAA, customDataCmdOne, sizeof(customDataCmdOne)));
+
+  uint8_t customDataCmdTwo[] = {0x3F};
+  self->sendCommand(
+      EpdCommands::create(0x01, customDataCmdTwo, sizeof(customDataCmdTwo)));
+
+  uint8_t customDataCmdThree[] = {0x5F, 0x69};
+  self->sendCommand(EpdCommands::create(0x00, customDataCmdThree,
+                                        sizeof(customDataCmdThree)));
+
+  uint8_t customDataCmdFour[] = {0x00, 0x54, 0x00, 0x44};
+  self->sendCommand(
+      EpdCommands::create(0x03, customDataCmdFour, sizeof(customDataCmdFour)));
+
+  uint8_t customDataCmdFive[] = {0x40, 0x1F, 0x1F, 0x2C};
+  self->sendCommand(
+      EpdCommands::create(0x05, customDataCmdFive, sizeof(customDataCmdFive)));
+
+  uint8_t customDataCmdSix[] = {0x6F, 0x1F, 0x17, 0x49};
+  self->sendCommand(
+      EpdCommands::create(0x06, customDataCmdSix, sizeof(customDataCmdSix)));
+
+  uint8_t customDataCmdSeven[] = {0x6F, 0x1F, 0x1F, 0x22};
+  self->sendCommand(EpdCommands::create(0x08, customDataCmdSeven,
+                                        sizeof(customDataCmdSeven)));
+
+  uint8_t customDataCmdEight[] = {0x03};
+  self->sendCommand(EpdCommands::create(0x30, customDataCmdEight,
+                                        sizeof(customDataCmdEight)));
+
+  uint8_t customDataCmdNine[] = {0x3F};
+  self->sendCommand(
+      EpdCommands::create(0x50, customDataCmdNine, sizeof(customDataCmdNine)));
+
+  uint8_t customDataCmdTen[] = {0x02, 0x00};
+  self->sendCommand(
+      EpdCommands::create(0x60, customDataCmdTen, sizeof(customDataCmdTen)));
+
+  uint8_t customDataCmdEleven[] = {0x03, 0x20, 0x01, 0xE0};
+  self->sendCommand(EpdCommands::create(0x61, customDataCmdEleven,
+                                        sizeof(customDataCmdEleven)));
+
+  uint8_t customDataCmdTwelve[] = {0x01};
+  self->sendCommand(EpdCommands::create(0x84, customDataCmdTwelve,
+                                        sizeof(customDataCmdTwelve)));
+  uint8_t customDataCmdThirteen[] = {0x2F};
+  self->sendCommand(EpdCommands::create(0xE3, customDataCmdThirteen,
+                                        sizeof(customDataCmdThirteen)));
+  // epaper register init end
+
+  self->sendPowerOnCommand(io);
+
+  ESP_RETURN_ON_ERROR(self->waitUntilIdle(), TAG, "Refresh handling error");
+  return ESP_OK;
 }
 
 esp_err_t Panel7in3::esp_lcd_new_panel_7in3e(

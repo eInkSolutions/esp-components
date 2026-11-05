@@ -1,5 +1,6 @@
 #pragma once
 
+#include <stddef.h>
 #include <stdint.h>
 
 namespace Epd {
@@ -37,18 +38,16 @@ namespace Epd {
 /// therefore written separately by the display driver.
 class EpdCommands {
 public:
-  enum class OPCODE : uint8_t {
-    PowerOff = 0x02,
-    PowerOn = 0x04,
-    DeepSleep = 0x07,
-    DataStart = 0x10,
-    DataRefresh = 0x12,
-  };
+  static constexpr uint8_t PowerOffOpcode = 0x02;
+  static constexpr uint8_t PowerOnOpcode = 0x04;
+  static constexpr uint8_t DeepSleepOpcode = 0x07;
+  static constexpr uint8_t DataStartOpcode = 0x10;
+  static constexpr uint8_t DataRefreshOpcode = 0x12;
 
   struct Command {
-    OPCODE opcode;
+    uint8_t opcode;
     const uint8_t *data;
-    uint8_t dataSize;
+    size_t dataSize;
   };
 
   static constexpr uint8_t PowerOffData[] = {0x00};
@@ -56,19 +55,24 @@ public:
   static constexpr uint8_t DeepSleepData[] = {0xA5};
   static constexpr uint8_t DataRefreshData[] = {0x01};
 
-  static constexpr Command PowerOff{OPCODE::PowerOff, PowerOffData,
+  static constexpr Command PowerOff{PowerOffOpcode, PowerOffData,
                                     sizeof(PowerOffData)};
 
-  static constexpr Command PowerOn{OPCODE::PowerOn, PowerOnData,
+  static constexpr Command PowerOn{PowerOnOpcode, PowerOnData,
                                    sizeof(PowerOnData)};
 
-  static constexpr Command DeepSleep{OPCODE::DeepSleep, DeepSleepData,
+  static constexpr Command DeepSleep{DeepSleepOpcode, DeepSleepData,
                                      sizeof(DeepSleepData)};
 
-  static constexpr Command DataStart{OPCODE::DataStart, nullptr, 0};
+  static constexpr Command DataStart{DataStartOpcode, nullptr, 0};
 
-  static constexpr Command DataRefresh{OPCODE::DataRefresh, DataRefreshData,
+  static constexpr Command DataRefresh{DataRefreshOpcode, DataRefreshData,
                                        sizeof(DataRefreshData)};
+
+  static constexpr Command create(uint8_t opcode, const uint8_t *data = nullptr,
+                                  size_t dataSize = 0) {
+    return Command{opcode, data, dataSize};
+  }
 };
 
 } // namespace Epd

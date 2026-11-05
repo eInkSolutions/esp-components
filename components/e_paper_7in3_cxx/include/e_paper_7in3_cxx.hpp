@@ -101,6 +101,7 @@ private:
 #endif // CONFIG_EPD_BUSY_INTERRUPT_ENABLED
 
   static esp_err_t panelReset(esp_lcd_panel_t *panel);
+  static esp_err_t panelInit(esp_lcd_panel_t *panel);
   esp_err_t reset();
 };
 
