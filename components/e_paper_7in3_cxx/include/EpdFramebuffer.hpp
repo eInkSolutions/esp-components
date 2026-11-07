@@ -1,5 +1,6 @@
 #pragma once
 
+#include "esp_err.h"
 #include <array>
 #include <stddef.h>
 #include <stdint.h>
@@ -114,6 +115,7 @@ public:
   static constexpr size_t BUFFER_SIZE = WIDTH * HEIGHT / 8;
 
   Framebuffer() = default;
+  ~Framebuffer() { release(); }
 
   constexpr uint16_t width() const { return WIDTH; }
   constexpr uint16_t height() const { return HEIGHT; }
@@ -158,11 +160,14 @@ public:
     }
   }
 
-  uint8_t *data() { return data_.data(); }
-  const uint8_t *data() const { return data_.data(); }
+  uint8_t *data() { return data_; }
+  const uint8_t *data() const { return data_; }
+
+  esp_err_t allocate();
+  void release();
 
 private:
-  std::array<uint8_t, BUFFER_SIZE> data_{};
+  uint8_t *data_ = nullptr;
 };
 
 } // namespace Epd

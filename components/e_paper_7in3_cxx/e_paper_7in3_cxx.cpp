@@ -307,6 +307,20 @@ esp_err_t Panel7in3::panelInit(esp_lcd_panel_t *panel) {
   return ESP_OK;
 }
 
+esp_err_t Panel7in3::panelDel(esp_lcd_panel_t *panel) {
+  auto *self = __containerof(panel, Panel7in3, panel_);
+
+  if (self->resetGpio_ != GPIO_NUM_NC) {
+    gpio_reset_pin(self->resetGpio_);
+  }
+  gpio_reset_pin(self->busyGpio_);
+  //
+  // if (self->framebuffer_) {
+  // INFO: Framebuffer not externally owned
+  // }
+  return ESP_OK;
+}
+
 esp_err_t Panel7in3::esp_lcd_new_panel_7in3e(
     const esp_lcd_panel_dev_config_t *const panel_dev_config) {
 
