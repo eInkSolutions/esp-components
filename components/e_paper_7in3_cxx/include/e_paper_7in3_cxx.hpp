@@ -87,6 +87,7 @@ private:
   esp_err_t sendRefreshCommand(esp_lcd_panel_io_handle_t io);
   esp_err_t sendPowerOnCommand(esp_lcd_panel_io_handle_t io);
   esp_err_t sendPowerOffCommand(esp_lcd_panel_io_handle_t io);
+  esp_err_t sendSleepModeCommand(esp_lcd_panel_io_handle_t io);
 
 #ifdef CONFIG_EPD_BUSY_INTERRUPT_ENABLED
   static void busyIsrHandler(void *arg);
@@ -103,6 +104,7 @@ private:
   static esp_err_t panelReset(esp_lcd_panel_t *panel);
   static esp_err_t panelInit(esp_lcd_panel_t *panel);
   static esp_err_t panelDel(esp_lcd_panel_t *panel);
+  static esp_err_t panelDispOnOff(esp_lcd_panel_t *panel, bool on_off);
   esp_err_t reset();
 };
 

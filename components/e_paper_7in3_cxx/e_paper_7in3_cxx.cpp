@@ -203,6 +203,16 @@ esp_err_t Panel7in3::sendPowerOnCommand(esp_lcd_panel_io_handle_t io) {
   return ESP_OK;
 }
 
+esp_err_t Panel7in3::sendSleepModeCommand(esp_lcd_panel_io_handle_t io) {
+  EpdCommands::Command deepSleepCommand = EpdCommands::DeepSleep;
+
+  ESP_RETURN_ON_ERROR(esp_lcd_panel_io_tx_param(io, deepSleepCommand.opcode,
+                                                deepSleepCommand.data,
+                                                deepSleepCommand.dataSize),
+                      TAG, "deep sleep command error");
+  return ESP_OK;
+}
+
 esp_err_t Panel7in3::registerBusyCompleteCallback(BusyCompleteCallback callback,
                                                   void *user_ctx) {
   if (callback == nullptr) {
@@ -318,6 +328,21 @@ esp_err_t Panel7in3::panelDel(esp_lcd_panel_t *panel) {
   // if (self->framebuffer_) {
   // INFO: Framebuffer not externally owned
   // }
+  return ESP_OK;
+}
+
+esp_err_t Panel7in3::panelDispOnOff(esp_lcd_panel_t *panel, bool on_off) {
+  auto *self = __containerof(panel, Panel7in3, panel_);
+  esp_lcd_panel_io_handle_t io = self->io_;
+
+  if (on_off) {
+    self->sendPowerOnCommand(io);
+    self->waitUntilIdle();
+  } else {
+    // Sleep Mode
+    self->sendSleepModeCommand(io);
+  }
+
   return ESP_OK;
 }
 
