@@ -7,6 +7,7 @@
 #include "esp_lcd_panel_interface.h"
 #include "esp_lcd_panel_io.h"
 #include "esp_lcd_panel_io_interface.h"
+#include "esp_lcd_panel_ops.h"
 #include "lwip/priv/nd6_priv.h"
 #include "soc/gpio_num.h"
 #include <cstddef>
@@ -138,7 +139,15 @@ esp_err_t Panel7in3::refresh(const esp_lcd_panel_io_handle_t &io) {
 
 esp_err_t Panel7in3::drawImage(const Epd::Framebuffer &framebuffer) {
 
-  esp_lcd_panel_io_handle_t io = NULL;
+  esp_lcd_panel_io_handle_t io = io_;
+
+  if (!framebuffer.data()) {
+    return ESP_ERR_INVALID_ARG;
+  }
+
+  if (framebuffer.width() != width_ || framebuffer.height() != height_) {
+    return ESP_ERR_INVALID_SIZE;
+  }
 
   // Make sure display is turned on
   ESP_RETURN_ON_ERROR(sendPowerOnCommand(io), TAG,
@@ -146,9 +155,10 @@ esp_err_t Panel7in3::drawImage(const Epd::Framebuffer &framebuffer) {
   ESP_RETURN_ON_ERROR(waitUntilIdle(), TAG, "refresh handling error");
 
   // TODO: implement more
-
-  ESP_RETURN_ON_ERROR(sendDrawCommand(io, framebuffer), TAG,
-                      "data framebuffer transmition err");
+  ESP_RETURN_ON_ERROR(esp_lcd_panel_draw_bitmap(this->panel_handle_, 0, 0,
+                                                width_, height_,
+                                                framebuffer.data()),
+                      TAG, "error transferring framebuffer");
 
   // Refresh screen here
   ESP_RETURN_ON_ERROR(refresh(io), TAG,
@@ -162,13 +172,12 @@ esp_err_t Panel7in3::drawImage(const Epd::Framebuffer &framebuffer) {
 }
 
 esp_err_t Panel7in3::sendDrawCommand(esp_lcd_panel_io_handle_t io,
-                                     const Framebuffer &framebuffer) {
+                                     const void *color_data, size_t size) {
   EpdCommands::Command startCommand = EpdCommands::DataStart;
 
-  ESP_RETURN_ON_ERROR(esp_lcd_panel_io_tx_color(io, (int)startCommand.opcode,
-                                                framebuffer.data(),
-                                                framebuffer.size()),
-                      TAG, "data framebuffer transmition err");
+  ESP_RETURN_ON_ERROR(
+      esp_lcd_panel_io_tx_color(io, startCommand.opcode, color_data, size), TAG,
+      "data framebuffer transmition err");
 
   return ESP_OK;
 }
@@ -346,6 +355,26 @@ esp_err_t Panel7in3::panelDispOnOff(esp_lcd_panel_t *panel, bool on_off) {
   return ESP_OK;
 }
 
+esp_err_t Panel7in3::panelDrawBitmap(esp_lcd_panel_t *panel, int x_start,
+                                     int y_start, int x_end, int y_end,
+                                     const void *color_data) {
+  auto *self = __containerof(panel, Panel7in3, panel_);
+  if (gpio_get_level(self->busyGpio_)) {
+    return ESP_ERR_NOT_FINISHED;
+  }
+
+  ESP_RETURN_ON_FALSE(color_data, ESP_ERR_INVALID_ARG, TAG, "bitmap is null");
+  ESP_RETURN_ON_FALSE((x_start < x_end) && (y_start < y_end),
+                      ESP_ERR_INVALID_ARG, TAG,
+                      "start position must be smaller than end position");
+
+  const size_t width = x_end - x_start;
+  const size_t height = y_end - y_start;
+  const size_t len = width * height / 2;
+
+  return self->sendDrawCommand(self->io_, color_data, len);
+}
+
 esp_err_t Panel7in3::esp_lcd_new_panel_7in3e(
     const esp_lcd_panel_dev_config_t *const panel_dev_config) {
 
@@ -375,13 +404,14 @@ esp_err_t Panel7in3::esp_lcd_new_panel_7in3e(
   panel_.reset = panelReset;
   panel_.init = panelInit;
   panel_.draw_bitmap = panelDrawBitmap;
-  panel_.invert_color = panelInvertColor;
-  panel_.set_gap = panelSetGap;
-  panel_.mirror = panelMirror;
-  panel_.swap_xy = panelSwapXY;
+  // panel_.invert_color = panelInvertColor;
+  // panel_.set_gap = panelSetGap;
+  // panel_.mirror = panelMirror;
+  // panel_.swap_xy = panelSwapXY;
   panel_.disp_on_off = panelDispOnOff;
 
   panel_handle_ = &panel_;
+  ESP_LOGD(TAG, "new 7in3e panel @%p", panel_);
 
   return ESP_OK;
 }

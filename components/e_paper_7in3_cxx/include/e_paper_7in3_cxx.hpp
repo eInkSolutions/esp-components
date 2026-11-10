@@ -83,7 +83,7 @@ private:
       const esp_lcd_panel_dev_config_t *const panel_dev_config);
 
   esp_err_t sendDrawCommand(esp_lcd_panel_io_handle_t io,
-                            const Framebuffer &framebuffer);
+                            const void *color_data, size_t size);
   esp_err_t sendRefreshCommand(esp_lcd_panel_io_handle_t io);
   esp_err_t sendPowerOnCommand(esp_lcd_panel_io_handle_t io);
   esp_err_t sendPowerOffCommand(esp_lcd_panel_io_handle_t io);
@@ -105,6 +105,9 @@ private:
   static esp_err_t panelInit(esp_lcd_panel_t *panel);
   static esp_err_t panelDel(esp_lcd_panel_t *panel);
   static esp_err_t panelDispOnOff(esp_lcd_panel_t *panel, bool on_off);
+  static esp_err_t panelDrawBitmap(esp_lcd_panel_t *panel, int x_start,
+                                   int y_start, int x_end, int y_end,
+                                   const void *color_data);
   esp_err_t reset();
 };
 
